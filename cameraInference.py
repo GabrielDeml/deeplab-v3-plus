@@ -20,6 +20,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 from tensorflow.python import debug as tf_debug
+from pprint import pprint
 
 parser = argparse.ArgumentParser()
 
@@ -53,15 +54,15 @@ parser.add_argument('--camera', type=int, default=0, help='Camera device')
 _NUM_CLASSES = 21
 
 def main(unused_argv):
-  # Using the Winograd non-fused algorithms provides a small performance boost.
-  os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
+    # Using the Winograd non-fused algorithms provides a small performance boost.
+    os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
-  pred_hooks = None
-  if FLAGS.debug:
-    debug_hook = tf_debug.LocalCLIDebugHook()
-    pred_hooks = [debug_hook]
+    pred_hooks = None
+    if FLAGS.debug:
+        debug_hook = tf_debug.LocalCLIDebugHook()
+        pred_hooks = [debug_hook]
 
-  model = tf.estimator.Estimator(
+    model = tf.estimator.Estimator(
       model_fn=deeplab_model.deeplabv3_plus_model_fn,
       model_dir=FLAGS.model_dir,
       params={
@@ -73,30 +74,50 @@ def main(unused_argv):
           'num_classes': _NUM_CLASSES,
       })
 
-  examples = dataset_util.read_examples_list(FLAGS.infer_data_list)
-  image_files = [os.path.join(FLAGS.data_dir, filename) for filename in examples]
+    # examples = dataset_util.read_examples_list(FLAGS.infer_data_list)
+    # image_files = [os.path.join(FLAGS.data_dir, filename) for filename in examples]
 
-  output_dir = FLAGS.output_dir
-  if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
+    output_dir = FLAGS.output_dir
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-  while True:
+    # while True:
     ret, frame = cap.read()
 
-    prediction = model.predict(
-        input_fn=frame,
-        hooks=pred_hooks)
 
-    cv2.imshow('frame', prediction)
+
+    prediction = model.predict(
+        input_fn=lambda: getFrame,
+        hooks=pred_hooks)
+    # print("I am Printing this.................................... " + str(prediction))
+    # sess = tf.Session()
+    pprint(globals())
+    pprint(locals())
+    # pprint(prediction)
+    # out = sess.run(prediction)
+    # print("Out........." + out)
+    print(str(prediction))
+
+
+    prediction = Image.fromarray(prediction[0]['decoded_labels'])
+    plt.imshow(prediction)
+    plt.show()
+    # prediction = Image.fromarray(prediction)
+
+
+    # cv2.imshow('frame', Image.fromarray(prediction))
     # mask = Image.fromarray(prediction)
     # plt.axis('off')
     # plt.imshow(mask)
 
+def getFrame():
+    print("hello from getFrame")
+    ret, frame = cap.read()
+    return frame
 
 if __name__ == '__main__':
-
+    cap = cv2.VideoCapture(0)
     tf.logging.set_verbosity(tf.logging.INFO)
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
 
-    cap = cv2.VideoCapture(unparsed.camera)

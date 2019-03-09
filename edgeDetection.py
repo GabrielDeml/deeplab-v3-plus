@@ -52,6 +52,7 @@ for name in os.listdir(args.img_dir):
 
     cColor = convert_from_color_segmentation(img)
 
+
     fImage = cv2.add(edges, cColor)
 
     #Write it to a file

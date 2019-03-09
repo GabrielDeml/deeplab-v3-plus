@@ -16,7 +16,8 @@ from utils import dataset_util
 
 from PIL import Image
 import matplotlib.pyplot as plt
-
+import time
+startTime = time.time()
 from tensorflow.python import debug as tf_debug
 
 parser = argparse.ArgumentParser()
@@ -69,19 +70,22 @@ def main(unused_argv):
           'batch_norm_decay': None,
           'num_classes': _NUM_CLASSES,
       })
+  print("We are after estimator" + str(time.time()-startTime))
 
   examples = dataset_util.read_examples_list(FLAGS.infer_data_list)
-  image_files = [os.path.join(FLAGS.data_dir, filename) for filename in examples]
+  image_files = [os.path.join(FLAGS.data_dir, filename +".jpg") for filename in examples]
 
   predictions = model.predict(
         input_fn=lambda: preprocessing.eval_input_fn(image_files),
         hooks=pred_hooks)
+  print("We are after prediction"+ str(time.time()-startTime))
 
   output_dir = FLAGS.output_dir
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
   for pred_dict, image_path in zip(predictions, image_files):
+    print(str(time.time() - startTime))
     image_basename = os.path.splitext(os.path.basename(image_path))[0]
     output_filename = image_basename + '_mask.png'
     path_to_output = os.path.join(output_dir, output_filename)
@@ -91,6 +95,7 @@ def main(unused_argv):
     mask = Image.fromarray(mask)
     plt.axis('off')
     plt.imshow(mask)
+    # plt.show()
     plt.savefig(path_to_output, bbox_inches='tight')
 
 
@@ -98,3 +103,5 @@ if __name__ == '__main__':
   tf.logging.set_verbosity(tf.logging.INFO)
   FLAGS, unparsed = parser.parse_known_args()
   tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+
+
